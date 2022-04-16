@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="IONET">
+      <HintPath>lib\IONET.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK">
+      <HintPath>lib\OpenTK.dll</HintPath>
+    </Reference>
+    <Reference Include="Syroot.BinaryData">
+      <HintPath>lib\Syroot.BinaryData.dll</HintPath>
+    </Reference>
+    <Reference Include="Toolbox.Core">
+      <HintPath>lib\Toolbox.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
