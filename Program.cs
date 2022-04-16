@@ -16,6 +16,13 @@ namespace TTLibrary
                 Console.Read();
                 return;
             }
+
+            if (!args[0].ToLower().EndsWith(".model"))
+            {
+                Console.WriteLine($"Input file must be a .model.");
+                return;
+            }
+
             Model model = new Model(args[0]);
         }
     }

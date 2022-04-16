@@ -16,16 +16,10 @@ namespace TTLibrary
         public string Name { get; set; }
 
         public Model(string filePath) {
-            if (!filePath.ToLower().EndsWith(".model"))
-            {
-                Console.WriteLine($"Input file must be a .model.");
-                return;
-            }
-
             Read(new FileReader(filePath));
         }
 
-        public void Read(FileReader reader)
+        private void Read(FileReader reader)
         {
             reader.SetByteOrder(true);
 
@@ -61,6 +55,7 @@ namespace TTLibrary
             ushort unk = reader.ReadUInt16();
             reader.ReadInt16(); //padding
 
+            //Read materials first
             Material[] materials = new Material[numMaterials];
             for (int i = 0; i < numMaterials; i++)
             {
@@ -69,6 +64,7 @@ namespace TTLibrary
                 materials[i].Name = ReadString(reader);
                 reader.Seek(3);
             }
+            //Next is the sub meshes.
             reader.ReadUInt32(); //padding
             uint numMeshes = reader.ReadUInt32();
             reader.ReadUInt32(); //1
@@ -85,10 +81,11 @@ namespace TTLibrary
                 if (indexFormat != 2)
                     throw new Exception($"Unknown index format! {indexFormat}");
 
+                //Indices come after all the buffer DXTVs
                 reader.SetByteOrder(false);
                 ushort[] indices = reader.ReadUInt16s((int)numIndices);
                 reader.SetByteOrder(true);
-
+                //78 extra bytes we need to skip till the next sub mesh section
                 reader.Seek(78);
                 //Convert the buffers and indices to a usable .iomesh to make a .dae file
                 model.Meshes.Add(ConvertToDae(meshes[i],i, buffers, indices));
@@ -110,55 +107,6 @@ namespace TTLibrary
             Console.WriteLine();
         }
 
-        private IOMesh ConvertToDae(SubMesh subMesh, int index, Buffer[] buffers, ushort[] indices)
-        {
-            //Convertable IO mesh to .dae
-            IOMesh mesh = new IOMesh();
-            mesh.Name = $"Mesh_{index}";
-
-            for (int v = 0; v < subMesh.NumVerts; v++)
-            {
-                IOVertex vertex = new IOVertex();
-                mesh.Vertices.Add(vertex);
-
-                foreach (var buffer in buffers)
-                {
-                    foreach (var attribute in buffer.Attributes)
-                    {
-                        switch (attribute.Type)
-                        {
-                            case AttributeType.Position:
-                                vertex.Position = new System.Numerics.Vector3(
-                                     attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z);
-                                break;
-                            case AttributeType.Normal:
-                                vertex.Normal = new System.Numerics.Vector3(
-                                     attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z);
-                                break;
-                            case AttributeType.UvSet01:
-                                vertex.SetUV(attribute.Data[v].X, attribute.Data[v].Y, 0);
-                                break;
-                            case AttributeType.UvSet2:
-                                vertex.SetUV(attribute.Data[v].X, attribute.Data[v].Y, 1);
-                                break;
-                            case AttributeType.ColorSet0:
-                                vertex.SetColor(attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z, attribute.Data[v].W, 0);
-                                break;
-                            case AttributeType.ColorSet1:
-                                vertex.SetColor(attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z, attribute.Data[v].W, 1);
-                                break;
-                        }
-                    }
-                }
-            }
-
-            var poly = new IOPolygon();
-            for (int j = 0; j < indices.Length; j++)
-                poly.Indicies.Add((int)indices[j]);
-
-            mesh.Polygons.Add(poly);
-            return mesh;
-        }
         private Buffer[] ParseDXTV(FileReader reader, SubMesh mesh)
         {
             Buffer[] buffers = new Buffer[mesh.NumBuffers];
@@ -192,9 +140,7 @@ namespace TTLibrary
                 for (int v = 0; v < mesh.NumVerts; v++) {
                     for (int j = 0; j < numAttributes; j++) {
                         reader.SeekBegin(pos + stride * v + buffer.Attributes[j].Offset);
-                        Vector4 value = ParseVertex(reader, buffer.Attributes[j].Format);
-                     //   Console.WriteLine($"{buffer.Attributes[j].Type} {buffer.Attributes[j].Format} {value}");
-                        buffer.Attributes[j].Data[v] = value;
+                        buffer.Attributes[j].Data[v] = ParseVertex(reader, buffer.Attributes[j].Format);
                     }
                 }
                 reader.SetByteOrder(true);
@@ -247,6 +193,55 @@ namespace TTLibrary
             string str = reader.ReadZeroTerminatedString();
             reader.ReadZeroTerminatedString();
             return str;
+        }
+        private IOMesh ConvertToDae(SubMesh subMesh, int index, Buffer[] buffers, ushort[] indices)
+        {
+            //Convertable IO mesh to .dae
+            IOMesh mesh = new IOMesh();
+            mesh.Name = $"Mesh_{index}";
+
+            for (int v = 0; v < subMesh.NumVerts; v++)
+            {
+                IOVertex vertex = new IOVertex();
+                mesh.Vertices.Add(vertex);
+
+                foreach (var buffer in buffers)
+                {
+                    foreach (var attribute in buffer.Attributes)
+                    {
+                        switch (attribute.Type)
+                        {
+                            case AttributeType.Position:
+                                vertex.Position = new System.Numerics.Vector3(
+                                     attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z);
+                                break;
+                            case AttributeType.Normal:
+                                vertex.Normal = new System.Numerics.Vector3(
+                                     attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z);
+                                break;
+                            case AttributeType.UvSet01:
+                                vertex.SetUV(attribute.Data[v].X, attribute.Data[v].Y, 0);
+                                break;
+                            case AttributeType.UvSet2:
+                                vertex.SetUV(attribute.Data[v].X, attribute.Data[v].Y, 1);
+                                break;
+                            case AttributeType.ColorSet0:
+                                vertex.SetColor(attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z, attribute.Data[v].W, 0);
+                                break;
+                            case AttributeType.ColorSet1:
+                                vertex.SetColor(attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z, attribute.Data[v].W, 1);
+                                break;
+                        }
+                    }
+                }
+            }
+
+            var poly = new IOPolygon();
+            for (int j = 0; j < indices.Length; j++)
+                poly.Indicies.Add((int)indices[j]);
+
+            mesh.Polygons.Add(poly);
+            return mesh;
         }
 
         public class Buffer
