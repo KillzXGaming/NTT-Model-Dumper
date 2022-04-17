@@ -94,8 +94,8 @@ namespace TTLibrary
                 }
 
                 reader.SetByteOrder(true);
-                //78 extra bytes we need to skip till the next sub mesh section
-                reader.Seek(78);
+                //70 extra bytes we need to skip till the next sub mesh section
+                reader.Seek(70 + 4 * buffers.Length);
                 //Convert the buffers and indices to a usable .iomesh to make a .dae file
                 model.Meshes.Add(ConvertToDae(meshes[i],i, buffers, indices));
             }
@@ -288,8 +288,8 @@ namespace TTLibrary
                     case AttributeFormat.Vec2Float: return 8;
                     case AttributeFormat.Vec3Float: return 12;
                     case AttributeFormat.Vec4Float: return 16;
-                    case AttributeFormat.Vec4Half: return 8;
                     case AttributeFormat.Vec2Half: return 4;
+                    case AttributeFormat.Vec4Half: return 8;
                     case AttributeFormat.Vec4Byte: return 4;
                     case AttributeFormat.Vec4ByteF: return 4;
                     case AttributeFormat.Color4Byte: return 4;
