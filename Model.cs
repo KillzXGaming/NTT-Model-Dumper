@@ -21,8 +21,9 @@ namespace TTLibrary
 
         private void Read(FileReader reader)
         {
+            //Read as big endian. Only the raw vertex/index data is little endian
             reader.SetByteOrder(true);
-
+            //Read to the end and make sure all file chunks are loaded
             while (reader.BaseStream.Length > reader.Position) {
                 long pos = reader.Position;
                 var chunk = reader.ReadStruct<ResourceChunk>();
@@ -75,22 +76,30 @@ namespace TTLibrary
                 meshes[i] = reader.ReadStruct<SubMesh>();
 
                 Buffer[] buffers = ParseDXTV(reader, meshes[i]);
+
+                //Indices come after all the buffer DXTVs
                 uint numIndices = reader.ReadUInt32();
                 uint indexFormat = reader.ReadUInt32(); //2 for ushort
 
-                if (indexFormat != 2)
+                if (indexFormat != 2 && indexFormat != 4)
                     throw new Exception($"Unknown index format! {indexFormat}");
 
-                //Indices come after all the buffer DXTVs
                 reader.SetByteOrder(false);
-                ushort[] indices = reader.ReadUInt16s((int)numIndices);
+
+                uint[] indices = new uint[numIndices];
+                for (int j = 0; j < numIndices; j++)
+                {
+                    if (indexFormat == 2) indices[j] = reader.ReadUInt16();
+                    if (indexFormat == 4) indices[j] = reader.ReadUInt32();
+                }
+
                 reader.SetByteOrder(true);
                 //78 extra bytes we need to skip till the next sub mesh section
                 reader.Seek(78);
                 //Convert the buffers and indices to a usable .iomesh to make a .dae file
                 model.Meshes.Add(ConvertToDae(meshes[i],i, buffers, indices));
             }
-
+            //Convert to ioscene and export as .dae
             var scene = new IOScene();
             scene.Models.Add(model);
 
@@ -101,7 +110,6 @@ namespace TTLibrary
                     Name = mat.Name,
                 });*/
             }
-
             IONET.IOManager.ExportScene(scene, $"{System.IO.Path.GetFileNameWithoutExtension(Name)}.dae");
 
             Console.WriteLine();
@@ -194,7 +202,7 @@ namespace TTLibrary
             reader.ReadZeroTerminatedString();
             return str;
         }
-        private IOMesh ConvertToDae(SubMesh subMesh, int index, Buffer[] buffers, ushort[] indices)
+        private IOMesh ConvertToDae(SubMesh subMesh, int index, Buffer[] buffers, uint[] indices)
         {
             //Convertable IO mesh to .dae
             IOMesh mesh = new IOMesh();
@@ -262,7 +270,7 @@ namespace TTLibrary
             public uint Magic;
             public uint Version;
             public uint NumBuffers;
-            public uint MaterialIndex;
+            public uint Unknown1;
             public uint Unknown2;
             public uint NumVerts;
         }
