@@ -234,10 +234,10 @@ namespace TTLibrary
                                 vertex.SetUV(attribute.Data[v].X, attribute.Data[v].Y, 1);
                                 break;
                             case AttributeType.ColorSet0:
-                                vertex.SetColor(attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z, attribute.Data[v].W, 0);
+                                vertex.SetColor(attribute.Data[v].X/255, attribute.Data[v].Y/255, attribute.Data[v].Z/255, attribute.Data[v].W/255, 0);
                                 break;
                             case AttributeType.ColorSet1:
-                                vertex.SetColor(attribute.Data[v].X, attribute.Data[v].Y, attribute.Data[v].Z, attribute.Data[v].W, 1);
+                                vertex.SetColor(attribute.Data[v].X/255, attribute.Data[v].Y/255, attribute.Data[v].Z/255, attribute.Data[v].W/255, 1);
                                 break;
                         }
                     }
